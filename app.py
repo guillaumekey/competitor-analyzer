@@ -20,16 +20,8 @@ def main():
     with st.expander("ℹ️ Instructions", expanded=False):
         render_instructions()
 
-    # Configuration des mots-clés communs
-    min_occurrences = st.number_input(
-        "Nombre minimum d'occurrences pour les mots clés communs",
-        min_value=2,
-        value=3,
-        help="Un mot clé doit apparaître dans au moins ce nombre de fichiers pour être affiché dans le tableau des mots clés communs"
-    )
-
-    # Mode débogage
-    debug_mode = st.sidebar.checkbox("Mode débogage", value=False)
+    # Mode débogage caché dans la sidebar
+    debug_mode = st.sidebar.checkbox("Mode débogage", value=False, key="debug_mode")
 
     # Initialisation de la session
     if 'competitors' not in st.session_state:
@@ -94,30 +86,20 @@ def main():
                     if competitor.get('dataframe') is None:
                         df = read_csv_safely(file)
                         competitor['dataframe'] = df
-                        if debug_mode:
-                            st.write(f"Fichier chargé: {file.name}, {df.shape[0]} lignes, {df.shape[1]} colonnes")
                     else:
                         df = competitor['dataframe']
-                        if debug_mode:
-                            st.write(f"DataFrame récupéré du cache: {df.shape[0]} lignes, {df.shape[1]} colonnes")
 
                     if df is not None:
                         # Stocker le DataFrame pour l'analyse des mots-clés communs
                         if is_client:
                             client_df = df.copy()
-                            if debug_mode:
-                                st.write(f"Client DataFrame défini: {df.shape[0]} lignes")
                         else:
                             all_dataframes.append(df.copy())
-                            if debug_mode:
-                                st.write(f"DataFrame concurrent ajouté, total: {len(all_dataframes)}")
 
                         # Analyser les données SEMrush
                         analysis = analyze_semrush_data(df, file.name, regex, is_client)
                         if analysis:
                             results.append(analysis)
-                            if debug_mode:
-                                st.write(f"Analyse réussie pour {file.name}")
                 except Exception as e:
                     st.error(f"Erreur lors du traitement de {file.name}: {str(e)}")
 
@@ -204,37 +186,61 @@ def main():
         # Analyse des mots-clés communs
         st.markdown("### 🔍 Analyse des mots clés communs")
 
-        # Débogage des dataframes pour l'analyse des mots-clés
-        if debug_mode:
-            st.write(f"Nombre de concurrents: {len(st.session_state.competitors)}")
-            st.write(f"Nombre de DataFrames concurrents: {len(all_dataframes)}")
-            st.write(f"Client DataFrame présent: {client_df is not None}")
-
-            # Afficher les premières lignes de chaque DataFrame pour débogage
-            if len(all_dataframes) > 0:
-                with st.expander("Aperçu des DataFrames concurrents"):
-                    for i, df in enumerate(all_dataframes):
-                        st.write(f"DataFrame concurrent #{i + 1} - Premières lignes:")
-                        st.dataframe(df.head(3))
-
-            if client_df is not None:
-                with st.expander("Aperçu du DataFrame client"):
-                    st.dataframe(client_df.head(3))
+        # Configuration pour l'analyse des mots-clés communs
+        min_occurrences = st.number_input(
+            "Nombre minimum d'occurrences pour les mots clés communs",
+            min_value=2,
+            value=3,
+            help="Un mot clé doit apparaître dans au moins ce nombre de fichiers pour être affiché dans le tableau des mots clés communs"
+        )
 
         # Génération de l'analyse des mots-clés communs
         if all_dataframes:
             try:
-                with st.spinner("Analyse des mots-clés communs en cours..."):
-                    common_keywords_df = analyze_common_keywords(all_dataframes, min_occurrences, client_df)
+                common_keywords_df = analyze_common_keywords(all_dataframes, min_occurrences, client_df, debug_mode)
 
                 if not common_keywords_df.empty:
+                    # Filtres pour les mots-clés
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        include_filter = st.text_input(
+                            "Inclure les mots-clés contenant (séparés par des virgules)",
+                            help="Filtrer les mots-clés qui contiennent l'un des termes spécifiés"
+                        )
+                    with col2:
+                        exclude_filter = st.text_input(
+                            "Exclure les mots-clés contenant (séparés par des virgules)",
+                            help="Filtrer les mots-clés qui ne contiennent aucun des termes spécifiés"
+                        )
+
+                    # Appliquer les filtres
+                    filtered_df = common_keywords_df.copy()
+
+                    # Filtrage par inclusion
+                    if include_filter:
+                        include_terms = [term.strip().lower() for term in include_filter.split(',') if term.strip()]
+                        if include_terms:
+                            mask = filtered_df['Mot clé'].str.lower().apply(
+                                lambda x: any(term in x for term in include_terms)
+                            )
+                            filtered_df = filtered_df[mask]
+
+                    # Filtrage par exclusion
+                    if exclude_filter:
+                        exclude_terms = [term.strip().lower() for term in exclude_filter.split(',') if term.strip()]
+                        if exclude_terms:
+                            mask = filtered_df['Mot clé'].str.lower().apply(
+                                lambda x: not any(term in x for term in exclude_terms)
+                            )
+                            filtered_df = filtered_df[mask]
+
                     # Mise en forme du tableau des mots-clés communs
                     def style_presence(val):
                         if val == 'Oui':
                             return 'background-color: rgba(46, 204, 113, 0.1)'
                         return ''
 
-                    styled_df = common_keywords_df.style.applymap(
+                    styled_df = filtered_df.style.applymap(
                         style_presence,
                         subset=['Présent chez le client']
                     )
@@ -250,26 +256,20 @@ def main():
                     col1, col2 = st.columns(2)
                     with col1:
                         st.metric(
-                            "Total mots clés communs",
-                            len(common_keywords_df)
+                            "Total mots clés affichés",
+                            len(filtered_df)
                         )
                     with col2:
-                        present_in_client = (common_keywords_df['Présent chez le client'] == 'Oui').sum()
-                        percentage = round(present_in_client / len(common_keywords_df) * 100) if len(
-                            common_keywords_df) > 0 else 0
+                        present_in_client = (filtered_df['Présent chez le client'] == 'Oui').sum()
+                        percentage = round(present_in_client / len(filtered_df) * 100) if len(filtered_df) > 0 else 0
                         st.metric(
                             "Mots clés présents chez le client",
                             f"{present_in_client} ({percentage}%)"
                         )
                 else:
                     st.warning("Aucun mot-clé commun trouvé avec les critères spécifiés.")
-                    st.write(
-                        "Essayez de réduire le nombre minimum d'occurrences ou vérifiez les formats de vos fichiers.")
             except Exception as e:
                 st.error(f"Erreur lors de l'analyse des mots clés communs: {str(e)}")
-                st.write("Détails:", e)
-                import traceback
-                st.code(traceback.format_exc())
         else:
             st.warning("Ajoutez au moins un fichier concurrent pour analyser les mots-clés communs.")
 

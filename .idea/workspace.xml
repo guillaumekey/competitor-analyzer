@@ -4,20 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1ae512e9-bc96-4be8-b1b7-bf26c1933aa1" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/analysis/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/analysis/keyword_analyzer.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/analysis/semrush_analyzer.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ui/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ui/components.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ui/layout.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/file_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/styling.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="1ae512e9-bc96-4be8-b1b7-bf26c1933aa1" name="Changes" comment="New Version Multi files">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/competitor-analyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -95,6 +83,19 @@
       <option name="presentableId" value="Default" />
       <updated>1735398283926</updated>
     </task>
+    <task id="LOCAL-00001" summary="New Version Multi files">
+      <option name="closed" value="true" />
+      <created>1744968177957</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1744968177957</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="New Version Multi files" />
+    <option name="LAST_COMMIT_MESSAGE" value="New Version Multi files" />
   </component>
 </project>
