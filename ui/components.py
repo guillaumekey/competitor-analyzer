@@ -19,56 +19,101 @@ def render_instructions():
 def render_metrics(avg_competitors_urls, client_urls, urls_diff,
                    avg_competitors_keywords, client_keywords, keywords_diff,
                    avg_competitors_traffic, client_traffic, traffic_diff):
-    """Affiche les métriques comparatives entre le client et les concurrents.
-
-    Args:
-        avg_competitors_urls: Moyenne des URLs uniques des concurrents
-        client_urls: Nombre d'URLs uniques du client
-        urls_diff: Différence en pourcentage pour les URLs
-        avg_competitors_keywords: Moyenne des mots-clés des concurrents
-        client_keywords: Nombre de mots-clés du client
-        keywords_diff: Différence en pourcentage pour les mots-clés
-        avg_competitors_traffic: Moyenne du trafic des concurrents
-        client_traffic: Trafic du client
-        traffic_diff: Différence en pourcentage pour le trafic
-    """
-    col1, col2, col3 = st.columns(3)
-    metrics = [
-        {
-            "title": "🔗 Moyenne URLs uniques",
-            "competitor_value": format_number(avg_competitors_urls),
-            "client_value": format_number(client_urls),
-            "difference": urls_diff
-        },
-        {
-            "title": "🎯 Moyenne mots clés",
-            "competitor_value": format_number(avg_competitors_keywords),
-            "client_value": format_number(client_keywords),
-            "difference": keywords_diff
-        },
-        {
-            "title": "📈 Moyenne traffic",
-            "competitor_value": format_number(avg_competitors_traffic),
-            "client_value": format_number(client_traffic),
-            "difference": traffic_diff
+    """Affiche les métriques comparatives en utilisant uniquement des composants natifs Streamlit."""
+    # Utiliser un conteneur avec background gris clair
+    with st.container():
+        # Ajouter un padding et un background gris clair simple
+        st.markdown("""
+        <style>
+        div[data-testid="stVerticalBlock"]:has(div.metric-header) {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
         }
-    ]
+        .metric-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
-    for col, metric in zip([col1, col2, col3], metrics):
-        with col:
-            st.markdown(f"""
-            <div class='custom-metric'>
-                <div style='color: #666; font-size: 0.8em;'>{metric['title']}</div>
-                <div style='margin: 0.5em 0;'>
-                    <span style='font-size: 0.8em; color: #666;'>Concurrents:</span>
-                    <div style='font-size: 1.2em; font-weight: bold;'>{metric['competitor_value']}</div>
-                </div>
-                <div style='margin: 0.5em 0;'>
-                    <span style='font-size: 0.8em; color: #666;'>Client:</span>
-                    <div style='font-size: 1.2em; font-weight: bold;'>{metric['client_value']}</div>
-                </div>
-                <div style='font-size: 0.9em; color: {"#2ecc71" if metric["difference"] >= 0 else "#e74c3c"}'>
-                    {format_number(abs(metric["difference"]))}% {" au-dessus" if metric["difference"] >= 0 else " en dessous"} de la moyenne
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+        # Créer trois colonnes pour les trois types de métriques
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.markdown('<div class="metric-header">🔗 Moyenne URLs uniques</div>', unsafe_allow_html=True)
+            st.markdown(f"**Concurrents:** {format_number(avg_competitors_urls)}")
+            st.markdown(f"**Client:** {format_number(client_urls)}")
+
+            diff_color = "green" if urls_diff >= 0 else "red"
+            diff_text = "au-dessus" if urls_diff >= 0 else "en dessous"
+            st.markdown(
+                f"<span style='color:{diff_color}'>{format_number(abs(urls_diff))}% {diff_text} de la moyenne</span>",
+                unsafe_allow_html=True)
+
+        with col2:
+            st.markdown('<div class="metric-header">🎯 Moyenne mots clés</div>', unsafe_allow_html=True)
+            st.markdown(f"**Concurrents:** {format_number(avg_competitors_keywords)}")
+            st.markdown(f"**Client:** {format_number(client_keywords)}")
+
+            diff_color = "green" if keywords_diff >= 0 else "red"
+            diff_text = "au-dessus" if keywords_diff >= 0 else "en dessous"
+            st.markdown(
+                f"<span style='color:{diff_color}'>{format_number(abs(keywords_diff))}% {diff_text} de la moyenne</span>",
+                unsafe_allow_html=True)
+
+        with col3:
+            st.markdown('<div class="metric-header">📈 Moyenne traffic</div>', unsafe_allow_html=True)
+            st.markdown(f"**Concurrents:** {format_number(avg_competitors_traffic)}")
+            st.markdown(f"**Client:** {format_number(client_traffic)}")
+
+            diff_color = "green" if traffic_diff >= 0 else "red"
+            diff_text = "au-dessus" if traffic_diff >= 0 else "en dessous"
+            st.markdown(
+                f"<span style='color:{diff_color}'>{format_number(abs(traffic_diff))}% {diff_text} de la moyenne</span>",
+                unsafe_allow_html=True)
+
+
+def render_keyword_stats(total_keywords, present_in_client, percentage, potential_volume):
+    """Affiche les statistiques des mots-clés avec les composants natifs Streamlit."""
+    # Utiliser les composants métriques natifs de Streamlit qui fonctionnent très bien
+    cols = st.columns(3)
+
+    with cols[0]:
+        st.metric(
+            label="📊 Total mots clés communs",
+            value=format_number(total_keywords)
+        )
+
+    with cols[1]:
+        st.metric(
+            label="🎯 Présents chez le client",
+            value=f"{format_number(present_in_client)} ({percentage}%)"
+        )
+
+    with cols[2]:
+        st.metric(
+            label="💎 Volume recherche non exploité",
+            value=format_number(potential_volume),
+            help="Potentiel de trafic mensuel à conquérir"
+        )
+
+
+def render_opportunity_stats(opportunities_count, opportunity_volume):
+    """Affiche les statistiques d'opportunités avec les composants natifs Streamlit."""
+    # Utiliser les composants métriques natifs de Streamlit
+    cols = st.columns(2)
+
+    with cols[0]:
+        st.metric(
+            label="✨ Mots-clés à faible difficulté",
+            value=format_number(opportunities_count)
+        )
+
+    with cols[1]:
+        st.metric(
+            label="🚀 Volume de recherche potentiel",
+            value=format_number(opportunity_volume),
+            help="Trafic mensuel facilement atteignable"
+        )

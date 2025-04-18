@@ -99,7 +99,8 @@ def analyze_semrush_data(df, filename, brand_regex, is_client=False):
 
 
 def style_dataframe(df):
-    """Applique un style personnalisé au DataFrame avec mise en forme conditionnelle.
+    """Applique un style simple et fiable au DataFrame, en évitant le HTML complexe.
+    Utilise uniquement les méthodes pandas/Streamlit standard.
 
     Args:
         df: DataFrame pandas à formater
@@ -107,41 +108,106 @@ def style_dataframe(df):
     Returns:
         DataFrame stylé
     """
-    df_style = df.copy()
+    try:
+        # Créer une copie pour éviter de modifier l'original
+        styled_df = df.copy()
 
-    # Assurer que les colonnes numériques le sont bien
-    for col in ['Traffic Total', 'Traffic de marque']:
-        df_style[col] = pd.to_numeric(df_style[col], errors='coerce')
+        # Formater les nombres avec séparateurs de milliers
+        for col in ['Traffic Total', 'Nombre de mots clés', 'Traffic de marque', 'Mots clés Top 3 (Organic)']:
+            if col in styled_df.columns:
+                styled_df[col] = styled_df[col].apply(lambda x: f"{int(x):,}".replace(',', ' '))
 
-    def color_scale(val, col):
-        """Fonction pour appliquer une échelle de couleur en fonction de la valeur."""
-        if pd.isna(val):
-            return ''
+        # Créer un styler pandas
+        styler = styled_df.style
 
-        max_val = df_style[col].max()
-        min_val = df_style[col].min()
-        norm_val = (val - min_val) / (max_val - min_val) if max_val != min_val else 0
+        # Mettre en évidence le client (fond jaune très pâle)
+        def highlight_client(x):
+            if isinstance(x, str) and x.startswith('🏠'):
+                return 'background-color: #fff8e1'
+            else:
+                return ''
 
-        return f'background-color: rgba(0, 99, 255, {norm_val * 0.2}); color: {"#1e1e1e" if norm_val < 0.7 else "white"}'
+        styler = styler.applymap(highlight_client, subset=['Domaine'])
 
-    def style_domain(val):
-        """Fonction pour mettre en évidence le domaine client."""
-        if val.startswith('🏠 '):
-            return 'font-weight: bold; background-color: rgba(255, 215, 0, 0.1)'
-        return ''
+        # Traffic Total - bleu très pâle
+        def style_traffic(x):
+            try:
+                # Enlever les espaces pour la comparaison
+                value = int(str(x).replace(' ', ''))
+                if value > 30000:
+                    return 'background-color: #e3f2fd'
+                elif value > 15000:
+                    return 'background-color: #e8f5e9'
+                else:
+                    return ''
+            except:
+                return ''
 
-    # Appliquer les styles
-    styles = []
-    for col in ['Traffic Total', 'Traffic de marque']:
-        styles.append({
-            col: lambda x, c=col: color_scale(x, c)
-        })
+        styler = styler.applymap(style_traffic, subset=['Traffic Total'])
 
-    styled_df = df_style.style
-    styled_df = styled_df.applymap(style_domain, subset=['Domaine'])
+        # Nombre de mots clés - violet très pâle
+        def style_keywords(x):
+            try:
+                value = int(str(x).replace(' ', ''))
+                if value > 5000:
+                    return 'background-color: #f3e5f5'
+                elif value > 2000:
+                    return 'background-color: #ede7f6'
+                else:
+                    return ''
+            except:
+                return ''
 
-    for style in styles:
-        for col, func in style.items():
-            styled_df = styled_df.applymap(func, subset=[col])
+        styler = styler.applymap(style_keywords, subset=['Nombre de mots clés'])
 
-    return styled_df
+        # Top 3 - orange très pâle
+        def style_top3(x):
+            try:
+                value = int(str(x).replace(' ', ''))
+                if value > 500:
+                    return 'background-color: #fff3e0'
+                elif value > 100:
+                    return 'background-color: #ffebee'
+                else:
+                    return ''
+            except:
+                return ''
+
+        styler = styler.applymap(style_top3, subset=['Mots clés Top 3 (Organic)'])
+
+        # Traffic de marque - rouge très pâle
+        def style_brand(x):
+            try:
+                value = int(str(x).replace(' ', ''))
+                if value > 1000:
+                    return 'background-color: #ffebee'
+                elif value > 500:
+                    return 'background-color: #fce4ec'
+                else:
+                    return ''
+            except:
+                return ''
+
+        styler = styler.applymap(style_brand, subset=['Traffic de marque'])
+
+        # Ajouter un style d'en-tête simple
+        styler = styler.set_table_styles([
+            {'selector': 'thead th',
+             'props': [('background-color', '#f5f5f5'),
+                       ('color', '#333333'),
+                       ('font-weight', 'bold'),
+                       ('text-align', 'center')]},
+            {'selector': 'tbody tr:hover',
+             'props': [('background-color', '#f9f9f9')]},
+        ])
+
+        # Aligner la colonne domaine à gauche
+        styler = styler.set_properties(subset=['Domaine'], **{'text-align': 'left'})
+
+        return styler
+
+    except Exception as e:
+        # En cas d'erreur, retourner le DataFrame original sans style
+        if st.session_state.get('debug_mode', False):
+            st.warning(f"Erreur lors de l'application du style: {str(e)}")
+        return df

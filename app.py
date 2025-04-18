@@ -2,11 +2,13 @@ import streamlit as st
 import uuid
 import pandas as pd
 from utils.file_utils import read_csv_safely
-from utils.styling import apply_custom_css
+from utils.styling import apply_custom_css, format_number
 from analysis.semrush_analyzer import analyze_semrush_data, style_dataframe
-from analysis.keyword_analyzer import analyze_common_keywords
-from ui.components import render_metrics, render_instructions
+# Importer la fonction correcte
+from analysis.keyword_analyzer_with_progress import analyze_common_keywords
+from ui.components import render_metrics, render_instructions, render_keyword_stats, render_opportunity_stats
 from ui.layout import setup_page_config
+from filtering_system import render_filter_ui, apply_filters
 
 # Configuration initiale
 setup_page_config()
@@ -174,10 +176,15 @@ def main():
             avg_competitors_traffic, client_traffic, traffic_diff
         )
 
-        # Affichage du tableau comparatif
+        # Affichage du tableau comparatif avec style amélioré
         st.markdown("### 📊 Tableau comparatif des performances")
+
+        # Appliquer le style pandas compatible avec Streamlit
+        styled_df = style_dataframe(df_results)
+
+        # Afficher le tableau avec le style amélioré
         st.dataframe(
-            style_dataframe(df_results),
+            styled_df,
             hide_index=True,
             use_container_width=True,
             height=400
@@ -197,79 +204,144 @@ def main():
         # Génération de l'analyse des mots-clés communs
         if all_dataframes:
             try:
-                common_keywords_df = analyze_common_keywords(all_dataframes, min_occurrences, client_df, debug_mode)
+                # Calculer les mots-clés communs
+                if 'common_keywords_df' not in st.session_state or st.session_state.get('recalculate_keywords', True):
+                    common_keywords_df = analyze_common_keywords(all_dataframes, min_occurrences,
+                                                                 client_df, debug_mode)
+                    st.session_state.common_keywords_df = common_keywords_df
+                    st.session_state.recalculate_keywords = False
+                else:
+                    common_keywords_df = st.session_state.common_keywords_df
 
                 if not common_keywords_df.empty:
-                    # Filtres pour les mots-clés
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        include_filter = st.text_input(
-                            "Inclure les mots-clés contenant (séparés par des virgules)",
-                            help="Filtrer les mots-clés qui contiennent l'un des termes spécifiés"
-                        )
-                    with col2:
-                        exclude_filter = st.text_input(
-                            "Exclure les mots-clés contenant (séparés par des virgules)",
-                            help="Filtrer les mots-clés qui ne contiennent aucun des termes spécifiés"
-                        )
+                    # Système de filtrage avancé avec UI améliorée
+                    filter_config = render_filter_ui()
 
-                    # Appliquer les filtres
-                    filtered_df = common_keywords_df.copy()
+                    # Vérifier si les filtres ont été mis à jour
+                    if filter_config.get("changed", True) and filter_config.get("rules"):
+                        # Si oui, appliquer les filtres et mettre à jour le DataFrame
+                        filtered_df = apply_filters(common_keywords_df, filter_config)
 
-                    # Filtrage par inclusion
-                    if include_filter:
-                        include_terms = [term.strip().lower() for term in include_filter.split(',') if term.strip()]
-                        if include_terms:
-                            mask = filtered_df['Mot clé'].str.lower().apply(
-                                lambda x: any(term in x for term in include_terms)
-                            )
-                            filtered_df = filtered_df[mask]
+                        # Mettre le DataFrame filtré en cache
+                        st.session_state.filtered_df = filtered_df
+                    else:
+                        # Sinon, utiliser les résultats filtrés précédemment ou le DataFrame complet
+                        if 'filtered_df' in st.session_state:
+                            filtered_df = st.session_state.filtered_df
+                        else:
+                            filtered_df = common_keywords_df
 
-                    # Filtrage par exclusion
-                    if exclude_filter:
-                        exclude_terms = [term.strip().lower() for term in exclude_filter.split(',') if term.strip()]
-                        if exclude_terms:
-                            mask = filtered_df['Mot clé'].str.lower().apply(
-                                lambda x: not any(term in x for term in exclude_terms)
-                            )
-                            filtered_df = filtered_df[mask]
+                    # Calculer les statistiques
+                    total_keywords = len(filtered_df)
+                    present_in_client = (filtered_df['Présent chez le client'] == 'Oui').sum()
+                    percentage = round(present_in_client / total_keywords * 100) if total_keywords > 0 else 0
 
-                    # Mise en forme du tableau des mots-clés communs
-                    def style_presence(val):
+                    # Calculer le volume de recherche potentiel (mots-clés non présents chez le client)
+                    potential_volume = filtered_df[filtered_df['Présent chez le client'] == 'Non'][
+                        'Volume de recherche'].sum()
+
+                    # Afficher les statistiques avec le composant amélioré
+                    render_keyword_stats(total_keywords, present_in_client, percentage, potential_volume)
+
+                    # Appliquer un style simple mais efficace au tableau des mots-clés
+                    keywords_styler = filtered_df.style
+
+                    # Formater les nombres
+                    keywords_styler = keywords_styler.format({
+                        'Volume de recherche': lambda x: f"{int(x):,}".replace(',', ' '),
+                        'Difficulté': lambda x: f"{int(x):,}".replace(',', ' ')
+                    })
+
+                    # Mise en évidence simple des "Oui"
+                    def highlight_presence(val):
                         if val == 'Oui':
-                            return 'background-color: rgba(46, 204, 113, 0.1)'
+                            return 'background-color: #e8f5e9; color: #2e7d32; font-weight: bold'
                         return ''
 
-                    styled_df = filtered_df.style.applymap(
-                        style_presence,
-                        subset=['Présent chez le client']
-                    )
+                    keywords_styler = keywords_styler.applymap(highlight_presence, subset=['Présent chez le client'])
 
+                    # Style d'en-tête simple
+                    keywords_styler = keywords_styler.set_table_styles([
+                        {'selector': 'thead th',
+                         'props': [('background-color', '#f5f5f5'),
+                                   ('color', '#333333'),
+                                   ('font-weight', 'bold'),
+                                   ('text-align', 'center')]}
+                    ])
+
+                    # Afficher le DataFrame des mots-clés communs sans HTML complexe
                     st.dataframe(
-                        styled_df,
+                        keywords_styler,
                         hide_index=True,
                         use_container_width=True,
                         height=400
                     )
 
-                    # Statistiques sur les mots-clés communs
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric(
-                            "Total mots clés affichés",
-                            len(filtered_df)
+                    # Section pour les opportunités à faible KD
+                    st.markdown("### 💡 Opportunités à faible difficulté")
+
+                    max_kd = st.slider(
+                        "Difficulté maximum (KD)",
+                        min_value=0,
+                        max_value=100,
+                        value=30,
+                        help="Affiche uniquement les mots-clés ayant une difficulté inférieure ou égale à cette valeur"
+                    )
+
+                    # Filtrer les mots-clés non présents chez le client avec KD inférieur au maximum
+                    opportunities_df = filtered_df[
+                        (filtered_df['Présent chez le client'] == 'Non') &
+                        (filtered_df['Difficulté'] <= max_kd)
+                        ].sort_values(['Difficulté', 'Volume de recherche'], ascending=[True, False])
+
+                    if not opportunities_df.empty:
+                        # Statistiques sur les opportunités avec le composant amélioré
+                        opp_volume = opportunities_df['Volume de recherche'].sum()
+                        render_opportunity_stats(len(opportunities_df), opp_volume)
+
+                        # Styliser le tableau des opportunités simplement
+                        opportunities_styler = opportunities_df.style.format({
+                            'Volume de recherche': lambda x: f"{int(x):,}".replace(',', ' '),
+                            'Difficulté': lambda x: f"{int(x):,}".replace(',', ' ')
+                        })
+
+                        # Coloration de la difficulté (vert quand faible)
+                        def color_difficulty(val):
+                            if val <= 10:
+                                return 'background-color: #e8f5e9; color: #2e7d32'
+                            elif val <= 20:
+                                return 'background-color: #f1f8e9; color: #558b2f'
+                            elif val <= 30:
+                                return 'background-color: #fffde7; color: #f57f17'
+                            return ''
+
+                        opportunities_styler = opportunities_styler.applymap(color_difficulty, subset=['Difficulté'])
+
+                        # Style d'en-tête simple
+                        opportunities_styler = opportunities_styler.set_table_styles([
+                            {'selector': 'thead th',
+                             'props': [('background-color', '#fff8e1'),
+                                       ('color', '#333333'),
+                                       ('font-weight', 'bold'),
+                                       ('text-align', 'center')]}
+                        ])
+
+                        # Afficher le tableau des opportunités
+                        st.dataframe(
+                            opportunities_styler,
+                            hide_index=True,
+                            use_container_width=True,
+                            height=400
                         )
-                    with col2:
-                        present_in_client = (filtered_df['Présent chez le client'] == 'Oui').sum()
-                        percentage = round(present_in_client / len(filtered_df) * 100) if len(filtered_df) > 0 else 0
-                        st.metric(
-                            "Mots clés présents chez le client",
-                            f"{present_in_client} ({percentage}%)"
-                        )
+                    else:
+                        st.info("Aucune opportunité trouvée avec les critères spécifiés.")
                 else:
                     st.warning("Aucun mot-clé commun trouvé avec les critères spécifiés.")
             except Exception as e:
                 st.error(f"Erreur lors de l'analyse des mots clés communs: {str(e)}")
+                if debug_mode:
+                    import traceback
+                    st.code(traceback.format_exc())
         else:
             st.warning("Ajoutez au moins un fichier concurrent pour analyser les mots-clés communs.")
 

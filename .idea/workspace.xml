@@ -5,7 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1ae512e9-bc96-4be8-b1b7-bf26c1933aa1" name="Changes" comment="New Version Multi files">
+      <change afterPath="$PROJECT_DIR$/analysis/keyword_analyzer_with_progress.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/filtering_system.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/analysis/keyword_analyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/analysis/keyword_analyzer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/analysis/semrush_analyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/analysis/semrush_analyzer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ui/components.py" beforeDir="false" afterPath="$PROJECT_DIR$/ui/components.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/styling.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/styling.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -91,7 +99,15 @@
       <option name="project" value="LOCAL" />
       <updated>1744968177957</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="New Version Multi files">
+      <option name="closed" value="true" />
+      <created>1744968740780</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1744968740780</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">

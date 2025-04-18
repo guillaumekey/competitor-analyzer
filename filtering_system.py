@@ -6,7 +6,7 @@ import re
 
 def render_filter_ui():
     """
-    Interface de filtrage simplifiée sans styles complexes.
+    Interface de filtrage simplifiée.
 
     Returns:
         dict: Configuration de filtrage avec règles et opérateurs logiques
@@ -19,7 +19,7 @@ def render_filter_ui():
             else:
                 st.session_state[key] = False
 
-    # Interface pour les filtres - Sans styles CSS injectés
+    # Interface pour les filtres
     with st.container():
         st.markdown("### Filtres avancés")
         st.text(f"{len(st.session_state.filter_rules)} règle(s) active(s)")
@@ -42,7 +42,7 @@ def render_filter_ui():
                 for i, rule in enumerate(st.session_state.filter_rules):
                     rule_id = f"rule_{i}"
 
-                    # Afficher la règle de manière simple
+                    # Afficher la règle
                     st.text(f"{rule['field']} {rule['operator']} \"{rule['value']}\"")
 
                     # Ajouter des contrôles pour chaque règle
@@ -129,7 +129,8 @@ def render_filter_ui():
             st.session_state.filter_changed = True
 
             # Forcer un rechargement pour appliquer les changements
-            st.experimental_rerun()
+            # Remplacer st.experimental_rerun() par st.rerun() qui est la fonction moderne
+            st.rerun()
 
     # Retourner la configuration de filtrage si applicable
     if st.session_state.filters_applied:
