@@ -1,17 +1,21 @@
+# Configurer la page en premier
 import streamlit as st
+from ui.layout import setup_page_config
+setup_page_config()
+
+# Ensuite, importer les autres modules
 import uuid
 import pandas as pd
 from utils.file_utils import read_csv_safely
 from utils.styling import apply_custom_css, format_number
 from analysis.semrush_analyzer import analyze_semrush_data, style_dataframe
-# Importer la fonction correcte
 from analysis.keyword_analyzer_with_progress import analyze_common_keywords
 from ui.components import render_metrics, render_instructions, render_keyword_stats, render_opportunity_stats
-from ui.layout import setup_page_config
 from filtering_system import render_filter_ui, apply_filters
+# Import du module de clustering multilingue
+from keyword_clustering_multilingual import render_clustering_ui
 
-# Configuration initiale
-setup_page_config()
+# Configuration supplémentaire (pas de set_page_config ici)
 apply_custom_css()
 
 
@@ -286,6 +290,13 @@ def main():
                             use_container_width=True,
                             height=400
                         )
+
+                        # Ajouter le clustering multilingue de mots-clés ici
+                        st.markdown("---")
+                        if 'filtered_df' in st.session_state and not st.session_state.filtered_df.empty:
+                            render_clustering_ui(st.session_state.filtered_df)
+                        else:
+                            st.info("Complétez l'analyse des mots-clés communs pour pouvoir utiliser le clustering.")
 
                         # Section pour les opportunités à faible KD
                         st.markdown("### 💡 Opportunités à faible difficulté")
